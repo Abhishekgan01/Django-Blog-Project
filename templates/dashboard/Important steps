@@ -1,0 +1,170 @@
+1)First Model - Category - for categories
+
+2)The model name will be converted into plural form once we register our model in admin
+        Eg:Task - Tasks
+    But in case of Category, it will be converted into Categorys. To avoid such cases and to modify the name manually, verbose_name_plural is used
+        Eg:
+        class Meta:
+           ##### verbose_name_plural = 'categories'
+
+3)Second Model - Blog
+        main in the Blog model
+        ####i)contains - slug - slug field
+        ii)contains category , which is foreign key and inside the foreign key , we should always give the model name of primary key
+            here,
+              ####  category - models.Foreignkey(Category)
+        iii)we will be using on_delete = models.CASCADE, bcoz, if we delete the Category, the blog post corresponding to the Category should also be deleted
+        ####iv)author = models.ForeignKey(User , on_delete=models.CASCADE) - to fetch the superuser name(django admin),we are creating foreign key 
+       ##### v) featured_image = models.ImageField(upload_to='uploads/%Y/%m/%d') - Uploads folder will be created and the image will be created inside the month folder and inside it, the day folder will be created.
+        vi) status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Draft")
+               STATUS_CHOICES = (
+              ("Draft","Draft"),
+              ("Published","Published")) - status choices are used to denote the options and default is used to set the default initially
+
+
+4)Prepopulated slugs
+    class BlogAdmin(admin.ModelAdmin):
+        #### prepopulated_fields = {'slug':('title',)} - to generate the slug default based on the title
+        list_display = ('title', 'category', 'author','status', 'is_featured') - to display the fields in admin panel in backend
+        search_fields = ('id', 'title','category__category_name', 'status') - search fields 
+                            category__category_name - bcoz category is foreign key and category_name is primary key
+        list_editable = ('is_featured',) 
+
+5)If there are multiple featured post and if we want to display only first post
+         {% for post in featured_posts %}    
+        ####### {% if forloop.first %}
+
+    if want to display, last post , we can use order by
+
+6)####<small class="text-muted">{{ post.created_at | timesince }} ago | {{ post.author }}</small> - |(filter) - used to display the time since it created
+
+7)The foreign key, it will automatically stores the id instead of name like sports. Here for category, it will automatically stores the category id
+
+8)The category in blog is assigned from the Category model. So if we create a new blog, the different category will be asked in blog and the it stores 
+the id of the category in the blog model. So if we delete the category, the corresponding  blog will be deleted
+
+9)####To create a custom error page, we should create 404.html and should change DEBUG = FALSE 
+
+10)As Django follows DRY Principle, the common code in all the pages are collected and saved in base.html to reuse the code. The base.html is 
+   divided into 3 parts.Header, Middle part and Footer.As the centre part will vary for all files, it will be denoted as
+
+   <!--Main Content Part-->
+        {% block content %}
+
+        {% endblock %}
+ 
+    The base.html should be extends in all the file at the top and between the block content and endblock, the main content is defined 
+
+11)Context_Processors - In home.html, we will be passing some context. Since we are following DRY principle, and saving the header and footer 
+in one file and using it in all file, the context which is passed to only one file cannot be available in all files.So we will be saving the 
+context in seperate file like
+    def get_categories(request):
+        categories = Category.objects.all()
+        return dict(categories=categories)
+ and add the below in Context_Processors in settings
+            'blogs.context_processors.get_categories',
+
+12)The views name cannot be same, so v can give BlogsView for the view coming from blogs app 
+
+13)blogs = Blog.objects.filter(Q(title__icontains=keyword) | Q(short_description__icontains=keyword) | Q(blog_body__icontains=keyword), status='Published' )
+    ######The above is used to check if we enter the keyword in search box and title__icontains is used to check whether the title contains the
+     keyword.Q acts as a OR Operator, where i denotes case sensitive.
+
+
+14)Since in UserCreationForm, only username, password and confirm password is available by default  and we need to add email to it, we are passing it inside a class 
+          For registration page , user creation form is imported and given inside our class as a parameter and will be given 
+      model = user
+       fields= (......)
+This will be imported and be used in views.py and context will be passed in html file and in request.post inside the class in views.py , the user entered details will be there and 
+       ###form.is_valid us used to validate form
+
+      Whereas the "AuthenticationForm" is available by default and can be used directly and passed it as a context and remaining same like registeration 
+ 
+            --------------
+
+    ###Login
+To take the user inputs data from the text box
+form. cleaned_data is used 
+Eg:
+username= form.cleaned_data['username']
+password = form.cleaned_data['password']
+
+     ####To authenticate , auth.authenticate is    used
+         user = auth.authenticate(username= username, password = password)
+
+ If it is not none,login the user like using below
+           if user is not None:
+                auth.login(request, user)
+     and redirect 
+
+    ------------
+
+#####Since even if we log in , the log in and register button will be available.So to avoid that 
+     In base.html , above the login and register button, add the condition
+        If not user.is_authenticated
+      {
+            .......
+      }
+
+     else:
+<span> You are logged in 
+<span><a href =""> Logout
+  
+The auth will be in default in context_processors in settings.py , so v can use user.is_authentucated without passing
+
+    ------
+
+####For logout, simply use 
+           auth.logout() 
+
+15)Authorization - manage permissions in admin panel (should enable staff status) and can allot specific permissions
+
+16)Groups - Can create a group (eg) Manager and allot some more permissions and the user can be created and allot the user to the Mnager group
+   Using this , we can create a single group and allot many users to it instead of creating users and assigning permissions individually
+
+17)Upgrading packages
+    #### pip freeze > requirements.txt - creates a requirements.txt file with all packages used inside
+    then replace all == with >=
+    then run -pip install -r requirements.txt --upgrade - To update the packages 
+
+
+18)######Create a new app for dashboard and in urls.py in dashboards which was created by us , give 
+     return render(request, 'dashboard/dashboard.html') - to say that create inside dashboard folder and inside it dashboard.html
+
+19)To display the total blog and category count, use Category.objects.all().count()
+
+20)######Login required decorator - applied in views(known as view decorator) - to applied restriction
+            @login_required(login_url='login')
+
+21)#####If u want to use the concept of extends inside extends, use can use include like below
+                 {% include 'dashboard/sidebar.html' %}
+        Here we have already extended base.html(header and footer), since the side bar should be present in all the pages, we will be giving the code in sidebar.html and will be including the code in the required pages
+
+22)####To highlight the default column while we open the dashboard
+         <a href="{% url 'dashboard' %}" class="nav-link text-dark {% if '/dashboard/' == request.path %}bg-warning{% endif %}">Dashboard</a>
+
+        To highlight the what we click while in the dashboard
+        <a href="{% url 'users' %}" class="nav-link text-dark {% if '/users/' in request.path %}bg-warning{% endif %}">Users</a>
+
+23)For icons, font awesome icons is used
+
+24)######If we want to use the form created by us, then forms.ModelForm is used
+        class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = Category
+        fields = '__all__'
+
+25)To edit category, we should get the existing category name, previously we have used value = {get_Task.task}, now for forms, we use
+        def edit_category(request, pk):
+            category = get_object_or_404(Category, pk=pk)
+            if request.method == 'POST':
+                form = CategoryForm(request.POST, instance=category) #instance is used to set the category in category input box in edittask     to edit whereas in request.POST , the new value will be there
+                if form.is_valid():
+                    form.save()
+                    return redirect ('categories')
+            form = CategoryForm(instance = category)
+            context = {
+                'form': form,
+                'category': category,
+            }
+            return render(request,'dashboard/edit_category.html', context)

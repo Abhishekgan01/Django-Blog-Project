@@ -26,7 +26,7 @@
       <div class="col-md-6 mb-4">
         <div class="card border-0 h-100" style="background-color: #f8f9fa;">
           <div class="card-body">
-            <h3><a href="{% url 'blogs' post.slug  %}" class="text-dark">{{ post.title }}</a></h3>
+            <h3><a href="{% url 'blogs' post.slug  %}" class="text-dark">{{ post.title }}</a></h3> 
             <small class="text-muted">{{ post.created_at | timesince }} ago | {{ post.author }}</small>
             <p class="card-text">{{ post.short_description | truncatewords:10 }}</p>
           </div>

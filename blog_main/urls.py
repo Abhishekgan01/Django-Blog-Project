@@ -16,21 +16,24 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from . import views
+from . import views #views inside the blogs_main
 from django.conf.urls.static import static
 from django.conf import settings
-from blogs import views as BlogsView
+from blogs import views as BlogsView #views coming from blogs app, since name cannot be same we r keeping like this
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('',views.home, name='home'),
     path('category/', include('blogs.urls')),
     path('blogs/<slug:slug>/',BlogsView.blogs, name='blogs'),
+
     #Search Endpoint
     path('blogs/search/', BlogsView.search, name='search'),
     path('register/', views.register, name='register'),
     path('login/', views.login, name='login'),
     path('logout/',views.logout, name='logout'),
+
+    #Dashboards
     path('dashboard/', include('dashboards.urls')),
 
 ]+static(settings.MEDIA_URL,document_root=settings.MEDIA_ROOT)
