@@ -15,6 +15,7 @@
               ####  category - models.Foreignkey(Category)
         iii)we will be using on_delete = models.CASCADE, bcoz, if we delete the Category, the blog post corresponding to the Category should also be deleted
         ####iv)author = models.ForeignKey(User , on_delete=models.CASCADE) - to fetch the superuser name(django admin),we are creating foreign key 
+             Foreignkey - One to many relationships, v r saying that the category name should be inherited from Category
        ##### v) featured_image = models.ImageField(upload_to='uploads/%Y/%m/%d') - Uploads folder will be created and the image will be created inside the month folder and inside it, the day folder will be created.
         vi) status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="Draft")
                STATUS_CHOICES = (
@@ -75,7 +76,7 @@ context in seperate file like
           For registration page , user creation form is imported and given inside our class as a parameter and will be given 
       model = user
        fields= (......)
-This will be imported and be used in views.py and context will be passed in html file and in request.post inside the class in views.py , the user entered details will be there and 
+        This will be imported and be used in views.py and context will be passed in html file and in request.post inside the class in views.py , the user entered details will be there and 
        ###form.is_valid us used to validate form
 
       Whereas the "AuthenticationForm" is available by default and can be used directly and passed it as a context and remaining same like registeration 
@@ -158,7 +159,8 @@ The auth will be in default in context_processors in settings.py , so v can use 
         def edit_category(request, pk):
             category = get_object_or_404(Category, pk=pk)
             if request.method == 'POST':
-                form = CategoryForm(request.POST, instance=category) #instance is used to set the category in category input box in edittask     to edit whereas in request.POST , the new value will be there
+                form = CategoryForm(request.POST, instance=category) #instance is used to set the category in category input box in edittask
+                to edit whereas in request.POST , the new value will be there
                 if form.is_valid():
                     form.save()
                     return redirect ('categories')
@@ -168,3 +170,67 @@ The auth will be in default in context_processors in settings.py , so v can use 
                 'category': category,
             }
             return render(request,'dashboard/edit_category.html', context)
+
+
+
+26)##########If our form contains any image field where it should be uploaded by the user,2 modifications should be done
+        i)In form action in html file, enctype = multipart/form-data
+        ii)In views.py, we should use request.FILES to get the image uploaded by the user
+
+27)Since the author in post is default field and we should not allow anyone to change the author obut we also didn't mention slug and it shows no error coz we gave blank=True(optional), so to modify
+the fields manually, 
+            post = form.save(commit=False) #temporarily saves the form
+            post.author = request.user #to assign user to the author field
+            post.save()
+
+28)To generate the slug based on title entered by the user in the form , we will be using
+    def add_post(request):
+        if request.method == 'POST':
+            form = BlogPostForm(request.POST,request.FILES) #request.FILES for image field
+        if form.is_valid:
+            post = form.save(commit=False) #temporarily saves the form
+            post.author = request.user  #to assign user to the author field
+            post.save() # it is saved coz the post id will be generated only after it is saved.This ID is used in slugify below
+            title = form.cleaned_data['title'] #To take title in form entered by user
+            post.slug = slugify(title) + '-' + str(post.id) #to unique the slug, v r adding post,id
+            post.save()
+            return redirect('posts')
+
+29)###################To allow only the manager to access the add user and other imporant modules, we should restrict them by using the authorization
+that was given to the manager and not to the editor like 
+                {% if perms.auth.add_user %} #this permission was given only to the manager and not to the editor, so we can restrict editor using this
+                <h2>Add new User</h2>
+
+                <form action="{% url 'add_user' %}" method="POST" 
+                {% csrf_token %}
+                {{ form | crispy }}
+                <button type="submit" class="btn btn-warning">Submit</button>
+                </form>
+
+30)##################In forms.py 
+            class BlogPostForm(forms.ModelForm): #Created by user, so forms.ModelForm
+                class Meta:
+                    model = Blog
+                    fields = ('title', 'category', 'featured_image', 'short_description', 'blog_body', 'status', 'is_featured')
+
+    #If we use UserCreation form , it will retrieve password as it is a required field
+            class AddUserForm(UserCreationForm): #Default, so UserCreationForm
+                class Meta:
+                    model = User
+                    fields = ('username','email','first_name','last_name','is_active', 'is_staff','is_superuser','groups','user_permissions')
+
+    We should not give permission for the Manager to change the password and confirm password , it should be given only by user. As the password
+    and confirm password comes by default in UserCreation form, to remove that password fields, we can first define UserCreationForm and then 
+    we can define forms.ModelForm from it, as it will show only the given fields
+        class AddUserForm(UserCreationForm):
+            class Meta:
+                model = User
+                fields = ('username','email','first_name','last_name','is_active', 'is_staff','is_superuser','groups','user_permissions')
+
+    #Hence we are using the forms.ModelForm 
+        class EditUserForm(forms.ModelForm):
+            class Meta:
+                model = User
+                fields = ('username','email','first_name','last_name','is_active', 'is_staff','is_superuser','groups','user_permissions')
+
+31)
